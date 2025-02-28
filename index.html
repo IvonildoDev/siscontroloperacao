@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle de Operações</title>
+    <title>Controle OP</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
@@ -25,6 +25,19 @@
     </nav>
 
     <div class="container">
+        <h1>Controle de Deslocamento</h1>
+        <input type="text" id="origin" placeholder="Digite a origem" required>
+        <input type="text" id="destination" placeholder="Digite o destino" required>
+        <input type="number" id="startKm" placeholder="KM Inicial" required>
+        <input type="number" id="endKm" placeholder="KM Final" required disabled>
+        <button id="startBtn">Iniciar Deslocamento</button>
+        <!-- <button id="endBtn" disabled>Finalizar Deslocamento</button> -->
+        <!-- 
+        <h2>Histórico de Viagens</h2>
+        <ul id="historyList"></ul>
+
+        <button id="generatePdfBtn">Gerar PDF do Histórico</button> -->
+
         <h1>Controle de Operações</h1>
         <form id="operacaoForm">
             <div class="tempo-operacao">
@@ -32,7 +45,7 @@
                     <label for="inicioOperacao">Início da Operação:</label>
                     <div class="input-grupo">
                         <input type="datetime-local" id="inicioOperacao" name="inicioOperacao" readonly required>
-                        <button type="button" id="marcarInicio">Marcar Início</button>
+                        <button type="button" id="marcarInicio"> Início Operação</button>
                     </div>
                 </div>
 
@@ -63,8 +76,6 @@
 
             <label for="nomeOperador">Nome do Operador:</label>
             <input type="text" id="nomeOperador" name="nomeOperador" required>
-
-            <button type="button" id="capturarLocalizacao">Capturar Localização e Hora</button>
 
             <label for="volumeBbl">Volume (bbl):</label>
             <input type="number" id="volumeBbl" name="volumeBbl" required>

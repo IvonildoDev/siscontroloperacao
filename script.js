@@ -30,8 +30,166 @@ function salvarOperacao(operacao) {
   localStorage.setItem("operacoes", JSON.stringify(operacoes));
 }
 
-// Evento de marcar início da operação
+// Adicione no início do arquivo, após as variáveis globais
+document.addEventListener('DOMContentLoaded', () => {
+  // Referências dos elementos de deslocamento
+  const startBtn = document.getElementById('startBtn');
+  const endBtn = document.getElementById('endBtn');
+  const startKmInput = document.getElementById('startKm');
+  const endKmInput = document.getElementById('endKm');
+  const originInput = document.getElementById('origin');
+  const destinationInput = document.getElementById('destination');
+  const historyList = document.getElementById('historyList');
+  const limparHistoricoBtn = document.getElementById("limparHistorico");
+
+  // Inicialização dos botões
+  if (startBtn && endBtn && endKmInput) {
+    endBtn.disabled = true;
+    endKmInput.disabled = true;
+    startBtn.disabled = true;
+  }
+
+  // Função para validar campos iniciais
+  function validarCamposIniciais() {
+    return originInput && destinationInput && startKmInput &&
+      originInput.value.trim() !== '' &&
+      destinationInput.value.trim() !== '' &&
+      startKmInput.value.trim() !== '';
+  }
+
+  // Eventos para validar campos ao digitar
+  if (originInput && destinationInput && startKmInput) {
+    [originInput, destinationInput, startKmInput].forEach(input => {
+      input.addEventListener('input', () => {
+        if (startBtn) {
+          startBtn.disabled = !validarCamposIniciais();
+        }
+      });
+    });
+  }
+
+  // Modifique o evento de iniciar deslocamento
+  if (startBtn) {
+    startBtn.addEventListener('click', () => {
+      if (validarCamposIniciais()) {
+        // Desabilita campos iniciais
+        originInput.disabled = true;
+        destinationInput.disabled = true;
+        startKmInput.disabled = true;
+        startBtn.disabled = true;
+
+        // Habilita campo KM final
+        endKmInput.disabled = false;
+
+        // Define valor mínimo para KM final
+        endKmInput.min = startKmInput.value;
+
+        // Quando o campo KM final for alterado, atualiza o campo de quilometragem inicial
+        endKmInput.addEventListener('change', () => {
+          const kmInicialOperacao = document.getElementById('kmInicial');
+          if (kmInicialOperacao && endKmInput.value) {
+            kmInicialOperacao.value = endKmInput.value;
+          }
+        });
+
+        // Alerta personalizado com informações do deslocamento
+        alert(`Deslocamento iniciado!\n\nOrigem: ${originInput.value}\nDestino: ${destinationInput.value}\nKM Inicial: ${startKmInput.value}`);
+      }
+    });
+  }
+
+  // Evento de finalizar deslocamento
+  if (endBtn) {
+    endBtn.addEventListener('click', () => {
+      const kmInicial = parseFloat(startKmInput.value);
+      const kmFinal = parseFloat(endKmInput.value);
+
+      if (kmFinal <= kmInicial) {
+        alert('O KM final deve ser maior que o KM inicial!');
+        return;
+      }
+
+      const distancia = kmFinal - kmInicial;
+
+      // Crie um objeto de operação com as informações de viagem
+      const operacao = {
+        inicioOperacao: formatarDataHoraLocal(new Date()),
+        fimOperacao: formatarDataHoraLocal(new Date()),
+        origem: originInput.value,
+        destino: destinationInput.value,
+        kmInicial: kmInicial,
+        kmFinal: kmFinal,
+        distanciaPercorrida: distancia,
+        timestamp: new Date().toLocaleString()
+      };
+
+      // Salve a operação e adicione ao histórico
+      salvarOperacao(operacao);
+      adicionarOperacaoAoHistorico(operacao);
+
+      // Resetar campos
+      originInput.value = '';
+      destinationInput.value = '';
+      startKmInput.value = '';
+      endKmInput.value = '';
+
+      // Reseta estados
+      originInput.disabled = false;
+      destinationInput.disabled = false;
+      startKmInput.disabled = false;
+      endKmInput.disabled = true;
+      startBtn.disabled = true;
+      endBtn.disabled = true;
+
+      alert('Deslocamento finalizado e salvo com sucesso!');
+    });
+  }
+
+  // Validação do KM final
+  if (endKmInput) {
+    endKmInput.addEventListener('input', () => {
+      const kmInicial = parseFloat(startKmInput.value);
+      const kmFinal = parseFloat(endKmInput.value);
+      if (endBtn) {
+        endBtn.disabled = kmFinal <= kmInicial;
+      }
+    });
+  }
+
+  // Função para limpar histórico
+  if (limparHistoricoBtn) {
+    limparHistoricoBtn.addEventListener("click", function () {
+      if (confirm("Tem certeza que deseja limpar todo o histórico? Esta ação não pode ser desfeita.")) {
+        try {
+          // Limpa o localStorage
+          localStorage.removeItem("operacoes");
+
+          // Limpa a lista de operações na tela
+          const historicoElement = document.getElementById("historicoOperacoes");
+          if (historicoElement) {
+            historicoElement.innerHTML = "<li class=\"sem-operacoes\">Nenhuma operação registrada hoje</li>";
+          }
+
+          alert("Histórico limpo com sucesso!");
+        } catch (erro) {
+          console.error("Erro ao limpar histórico:", erro);
+          alert("Erro ao limpar o histórico. Por favor, tente novamente.");
+        }
+      }
+    });
+  }
+});
+
+// Modifique o evento de marcar início da operação
 document.getElementById("marcarInicio")?.addEventListener("click", function () {
+  const endKmInput = document.getElementById('endKm');
+
+  // Verifica se o KM final está preenchido
+  if (!endKmInput || !endKmInput.value) {
+    alert('Por favor, preencha o KM final do deslocamento antes de iniciar a operação.');
+    return;
+  }
+
   const agora = new Date();
   horaInicio = agora;
 
@@ -52,6 +210,12 @@ document.getElementById("marcarInicio")?.addEventListener("click", function () {
   // Habilita campos do formulário
   const campos = document.querySelectorAll("#operacaoForm input:not(#inicioOperacao), #operacaoForm select, #operacaoForm textarea");
   campos.forEach(campo => campo.removeAttribute("disabled"));
+
+  // Preenche o campo de quilometragem inicial com o valor do campo de KM final do deslocamento
+  const kmInicialOperacao = document.getElementById('kmInicial');
+  if (kmInicialOperacao) {
+    kmInicialOperacao.value = endKmInput.value;
+  }
 
   // Desabilita botão de início
   this.disabled = true;
@@ -82,17 +246,25 @@ document.getElementById("capturarLocalizacao")?.addEventListener("click", functi
 document.getElementById("operacaoForm")?.addEventListener("submit", function (event) {
   event.preventDefault();
 
-  // Captura e formata data/hora do fim da operação
   const horaFim = new Date();
   const operacaoInicio = new Date(document.getElementById("inicioOperacao").value);
 
-  // Cria objeto com dados da operação
+  // Captura informações de deslocamento
+  const origem = document.getElementById("origin").value;
+  const destino = document.getElementById("destination").value;
+  const kmInicial = document.getElementById("startKm").value;
+  const kmFinal = document.getElementById("endKm").value;
+  const distanciaPercorrida = kmFinal - kmInicial;
+
+  // Cria objeto com dados da operação incluindo deslocamento
   const operacao = {
-    inicioOperacao: formatarDataHoraLocal(operacaoInicio), // Formato DD/MM/YYYY HH:mm
-    fimOperacao: formatarDataHoraLocal(horaFim), // Formato DD/MM/YYYY HH:mm
-    kmInicial: document.getElementById("kmInicial").value,
-    kmFinal: document.getElementById("kmFinal").value,
-    distanciaPercorrida: document.getElementById("kmFinal").value - document.getElementById("kmInicial").value,
+    inicioOperacao: formatarDataHoraLocal(operacaoInicio),
+    fimOperacao: formatarDataHoraLocal(horaFim),
+    origem: origem,
+    destino: destino,
+    kmInicial: kmInicial,
+    kmFinal: kmFinal,
+    distanciaPercorrida: distanciaPercorrida,
     nomeOpAux: document.getElementById("nomeOpAux").value,
     tipoOperacao: document.getElementById("tipoOperacao").value,
     nomeCidade: document.getElementById("nomeCidade").value,
@@ -107,17 +279,25 @@ document.getElementById("operacaoForm")?.addEventListener("submit", function (ev
   };
 
   try {
-    // Salva operação e atualiza histórico
     salvarOperacao(operacao);
     adicionarOperacaoAoHistorico(operacao);
 
-    // Reset do formulário
+    // Reset de todos os campos
     this.reset();
     document.getElementById("marcarInicio").disabled = false;
+    document.getElementById("origin").value = '';
+    document.getElementById("destination").value = '';
+    document.getElementById("startKm").value = '';
+    document.getElementById("endKm").value = '';
 
     // Desabilita campos
     const campos = document.querySelectorAll("#operacaoForm input:not(#inicioOperacao), #operacaoForm select, #operacaoForm textarea");
     campos.forEach(campo => campo.setAttribute("disabled", "disabled"));
+
+    // Reset estados dos botões de deslocamento
+    document.getElementById("startBtn").disabled = true;
+    document.getElementById("endBtn").disabled = true;
+    document.getElementById("endKm").disabled = true;
 
     localizacaoCapturada = null;
     alert("Operação salva com sucesso!");
@@ -222,78 +402,77 @@ function carregarOperacoesDoDia() {
   }
 }
 
-function adicionarOperacaoAoHistorico(a) {
-  const b = document.getElementById("historicoOperacoes"),
-    c = document.createElement("li");
-  let d = a.localizacao ? `Lat: ${a.localizacao.latitude.toFixed(4)}, Long: ${a.localizacao.longitude.toFixed(4)}` : "Não capturada";
-  c.innerHTML = `
+// Modifique a função de adicionar operação ao histórico
+function adicionarOperacaoAoHistorico(operacao) {
+  const listItem = document.createElement("li");
+  listItem.innerHTML = `
     <div class="operacao-item">
       <div class="operacao-grid">
         <div class="grid-item">
           <strong>Início:</strong><br>
-          ${a.inicioOperacao}
+          ${operacao.inicioOperacao}
         </div>
         <div class="grid-item">
           <strong>Fim:</strong><br>
-          ${a.fimOperacao}
+          ${operacao.fimOperacao}
+        </div>
+        <div class="grid-item">
+          <strong>Origem:</strong><br>
+          ${operacao.origem || 'Não informado'}
+        </div>
+        <div class="grid-item">
+          <strong>Destino:</strong><br>
+          ${operacao.destino || 'Não informado'}
         </div>
         <div class="grid-item">
           <strong>Quilometragem:</strong><br>
-          Inicial: ${a.kmInicial}km<br>
-          Final: ${a.kmFinal}km<br>
-          Percorrido: ${a.distanciaPercorrida}km
-        </div>
-        <div class="grid-item">
-          <strong>Data/Hora:</strong><br>
-          ${a.timestamp}
+          Inicial: ${operacao.kmInicial}km<br>
+          Final: ${operacao.kmFinal}km<br>
+          Percorrido: ${operacao.distanciaPercorrida}km
         </div>
         <div class="grid-item">
           <strong>OP/Aux:</strong><br>
-          ${a.nomeOpAux}
+          ${operacao.nomeOpAux}
         </div>
         <div class="grid-item">
           <strong>Tipo Operação:</strong><br>
-          ${a.tipoOperacao}
+          ${operacao.tipoOperacao}
         </div>
         <div class="grid-item">
           <strong>Cidade:</strong><br>
-          ${a.nomeCidade}
+          ${operacao.nomeCidade}
         </div>
         <div class="grid-item">
           <strong>Poço/Serviço:</strong><br>
-          ${a.nomePocoServ}
+          ${operacao.nomePocoServ}
         </div>
         <div class="grid-item">
           <strong>Operador:</strong><br>
-          ${a.nomeOperador}
+          ${operacao.nomeOperador}
         </div>
         <div class="grid-item">
           <strong>Volume:</strong><br>
-          ${a.volumeBbl} bbl
+          ${operacao.volumeBbl} bbl
         </div>
         <div class="grid-item">
           <strong>Temperatura:</strong><br>
-          ${a.temperatura}°C
+          ${operacao.temperatura}°C
         </div>
         <div class="grid-item">
           <strong>Pressão:</strong><br>
-          ${a.pressao}
-        </div>
-        <div class="grid-item grid-item-full">
-          <strong>Localização:</strong><br>
-          ${d}
+          ${operacao.pressao} PSI
         </div>
         <div class="grid-item grid-item-full">
           <strong>Descrição:</strong><br>
-          ${a.descricaoAtividades}
+          ${operacao.descricaoAtividades}
         </div>
-      </div>
-      <div class="operacao-actions">
-        <button class="btn-excluir" onclick="excluirOperacao('${a.timestamp}')">Excluir</button>
       </div>
     </div>
   `;
-  b.insertBefore(c, b.firstChild);
+  const historicoOperacoes = document.getElementById("historicoOperacoes");
+  if (historicoOperacoes) {
+    historicoOperacoes.insertBefore(listItem, historicoOperacoes.firstChild);
+  }
 }
 
 function excluirOperacao(a) {
@@ -415,26 +594,5 @@ document.getElementById("gerarPDF")?.addEventListener("click", function () {
   } catch (erro) {
     console.error("Erro ao gerar PDF:", erro);
     alert("Erro ao gerar o PDF. Por favor, tente novamente.");
-  }
-});
-
-// Função para limpar histórico
-document.getElementById("limparHistorico")?.addEventListener("click", function () {
-  if (confirm("Tem certeza que deseja limpar todo o histórico? Esta ação não pode ser desfeita.")) {
-    try {
-      // Limpa o localStorage
-      localStorage.removeItem("operacoes");
-
-      // Limpa a lista de operações na tela
-      const historicoElement = document.getElementById("historicoOperacoes");
-      if (historicoElement) {
-        historicoElement.innerHTML = "<li class=\"sem-operacoes\">Nenhuma operação registrada hoje</li>";
-      }
-
-      alert("Histórico limpo com sucesso!");
-    } catch (erro) {
-      console.error("Erro ao limpar histórico:", erro);
-      alert("Erro ao limpar o histórico. Por favor, tente novamente.");
-    }
   }
 });
